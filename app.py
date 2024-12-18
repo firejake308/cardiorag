@@ -4,9 +4,13 @@ from langchain_community.retrievers import BM25Retriever
 from os import getenv
 from dotenv import load_dotenv
 import streamlit as st
+import nltk
 from nltk.tokenize import word_tokenize
 
 load_dotenv()
+
+# set nltk data path
+nltk.data.path.append("./nltk_data")
 
 st.title("❤ CardioRAG")
 
