@@ -4,26 +4,31 @@ from langchain_community.retrievers import BM25Retriever
 from os import getenv
 from dotenv import load_dotenv
 import streamlit as st
-import PyPDF2
 from nltk.tokenize import word_tokenize
 
 load_dotenv()
 
-st.title("♥ CardioRAG")
+st.title("❤ CardioRAG")
 
 # load in PDF for RAG
+txt = None
 if "retriever" not in st.session_state:
-    st.text("Loading PDF...")
+    txt = st.text("Loading knowledge...")
     prog_bar = st.progress(0)
-    pdf_reader = PyPDF2.PdfReader(open("Moss and Adams 10e Vol 1 & 2.pdf", 'rb'))
-    chunks = []
-    for page_num in range(60, 600):
-        chunks.append(pdf_reader.pages[page_num].extract_text())
-        prog_bar.progress((page_num-60+1)/(600-60))
+    with open("combined_pages.txt", encoding='utf-8') as f:
+        combined_text = f.read()
+        prog_bar.progress(33)
+        DIVIDER = '\n' + ('-' * 10) + '\n'
+        chunks = combined_text.split(DIVIDER)
+        prog_bar.progress(67)
     # put chunks into vector store
-    retriever = BM25Retriever.from_texts(chunks, metadatas=[{"page_num": p } for p in range(60, 600)], preprocess_func=word_tokenize)
+    retriever = BM25Retriever.from_texts(chunks, metadatas=[{"page_num": p } for p in range(59, 6000)], preprocess_func=word_tokenize)
     st.session_state["retriever"] = retriever
-st.text("Loaded PDF")
+    prog_bar.progress(100)
+if txt:
+    txt.text("Loaded knowledge")
+else:
+    st.text("Loaded knowledge")
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
@@ -42,22 +47,35 @@ if "password" not in st.session_state:
 
 with st.form("chat_input", clear_on_submit=True):
     a,b = st.columns([4,1])
+    if "messages" in st.session_state and len(st.session_state['messages']) > 1:
+        placeholder = "Ask a new question"
+    else:
+        placeholder = "What is the incidence of congenital heart disease?"
     user_input = a.text_input(
         label="Question:",
-        placeholder="What is the incidence of congenital heart disease?",
+        placeholder=placeholder,
         label_visibility="collapsed",
         disabled="password" not in st.session_state,
     )
-    b.form_submit_button("Send", use_container_width=True)
+    print("user_input", user_input)
 
-for i, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg['role']):
-        st.text(msg["content"])
+    submit_pressed = b.form_submit_button("Send", use_container_width=True)
 
-if user_input and st.session_state["password"]:
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.text(user_input)
+if submit_pressed and user_input and st.session_state["password"]:
+    if 'asked_message' in st.session_state:
+        st.session_state['messages'] = [{"role": "user", "content": user_input}]
+    else:
+        st.session_state.messages.append({"role": "user", "content": user_input})
+
+    for i, msg in enumerate(st.session_state.messages):
+        with st.chat_message(msg['role']):
+            st.text(msg["content"])
+
+    with st.chat_message("assistant"):
+        assistant_message = st.empty()
+    assistant_message.text('Loading...')
+
+    st.session_state['asked_message'] = True
 
     llm = ChatOpenAI(
         api_key=getenv("OPENROUTER_API_KEY"),
@@ -66,7 +84,7 @@ if user_input and st.session_state["password"]:
         streaming=True)
     
     retriever = st.session_state["retriever"]
-    docs = retriever.get_relevant_documents(user_input)
+    docs = retriever.invoke(user_input)
     DIVIDER = "-"*10
     context = DIVIDER.join([f"Page {d.metadata['page_num']}: {d.page_content}" for d in docs])
 
@@ -82,12 +100,15 @@ Question: {question}
 Answer:"""
     )
 
-    with st.chat_message("assistant"):
-        response = st.write_stream(llm.stream(prompt.format(context=context, question=user_input)))
+    response = assistant_message.write_stream(llm.stream(prompt.format(context=context, question=user_input)))
     st.session_state['messages'].append({"role": "assistant", "content": response})
 
     st.subheader('Sources', divider=True)
     for doc in docs:
-        with st.expander(f"Page {doc.metadata['page_num']}"):
+        # adding 2 here to convert between zero-index and 1-index and also I messed up somewhere
+        with st.expander(f"Page {doc.metadata['page_num']+2}"):
             st.text(str(doc.page_content))
-    
+else:
+    for i, msg in enumerate(st.session_state.messages):
+        with st.chat_message(msg['role']):
+            st.text(msg["content"])
