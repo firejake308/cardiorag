@@ -4,6 +4,7 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_huggingface import HuggingFaceEmbeddings
 # from langchain_chroma import Chroma
 from langchain_community.vectorstores import SQLiteVec
+import sqlite3
 from os import getenv
 from dotenv import load_dotenv
 import streamlit as st
@@ -29,7 +30,8 @@ if "retriever" not in st.session_state:
         cache_folder="./models"
     )
     prog_bar.progress(50)
-    retriever = SQLiteVec(embedding=hf, connection=None, table='langchain', db_file='./vector_sqlite.db').as_retriever(search_kwargs={"k": 5})
+    connection = sqlite3.connect('./vector_sqlite.db')
+    retriever = SQLiteVec(embedding=hf, connection=connection, table='langchain').as_retriever(search_kwargs={"k": 5})
     st.session_state["retriever"] = retriever
     prog_bar.progress(100)
 if txt:
