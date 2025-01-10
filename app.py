@@ -2,7 +2,8 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_community.retrievers import BM25Retriever
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
+# from langchain_chroma import Chroma
+from langchain_community.vectorstores import SQLiteVec
 from os import getenv
 from dotenv import load_dotenv
 import streamlit as st
@@ -28,7 +29,7 @@ if "retriever" not in st.session_state:
         cache_folder="./models"
     )
     prog_bar.progress(50)
-    retriever = Chroma(embedding_function=hf, persist_directory='./chroma_moss').as_retriever(search_kwargs={"k": 5})
+    retriever = SQLiteVec(embedding_function=hf, db_file='./vector_sqlite.db').as_retriever(search_kwargs={"k": 5})
     st.session_state["retriever"] = retriever
     prog_bar.progress(100)
 if txt:
