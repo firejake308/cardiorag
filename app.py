@@ -1,6 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_community.retrievers import BM25Retriever
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
 from os import getenv
 from dotenv import load_dotenv
 import streamlit as st
@@ -19,14 +21,14 @@ txt = None
 if "retriever" not in st.session_state:
     txt = st.text("Loading knowledge...")
     prog_bar = st.progress(0)
-    with open("combined_pages.txt", encoding='utf-8') as f:
-        combined_text = f.read()
-        prog_bar.progress(33)
-        DIVIDER = '\n' + ('-' * 10) + '\n'
-        chunks = combined_text.split(DIVIDER)
-        prog_bar.progress(67)
-    # put chunks into vector store
-    retriever = BM25Retriever.from_texts(chunks, metadatas=[{"page_num": p } for p in range(59, 6000)], preprocess_func=word_tokenize)
+    hf = HuggingFaceEmbeddings(
+        model_name="abhinand/MedEmbed-small-v0.1",
+        model_kwargs={'device': 'cpu'},
+        encode_kwargs={'normalize_embeddings': False},
+        cache_folder="./models"
+    )
+    prog_bar.progress(50)
+    retriever = Chroma(embedding_function=hf, persist_directory='./chroma_moss').as_retriever(search_kwargs={"k": 5})
     st.session_state["retriever"] = retriever
     prog_bar.progress(100)
 if txt:
