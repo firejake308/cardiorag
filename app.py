@@ -3,7 +3,8 @@ from langchain.prompts import PromptTemplate
 from langchain_community.retrievers import BM25Retriever
 from langchain_huggingface import HuggingFaceEmbeddings
 # from langchain_chroma import Chroma
-from langchain_community.vectorstores import SQLiteVec
+from langchain_community.vectorstores import FAISS
+from langchain_community.docstore.in_memory import InMemoryDocstore
 import sqlite3
 from os import getenv
 from dotenv import load_dotenv
@@ -30,8 +31,8 @@ if "retriever" not in st.session_state:
         cache_folder="./models"
     )
     prog_bar.progress(50)
-    connection = sqlite3.connect('./vector_sqlite.db')
-    retriever = SQLiteVec(embedding=hf, connection=connection, table='langchain').as_retriever(search_kwargs={"k": 5})
+    # retriever = FAISS(embedding_function=hf, docstore=InMemoryDocstore()).as_retriever(search_kwargs={"k": 5})
+    retriever = FAISS.load_local('./faiss', embeddings=hf)
     st.session_state["retriever"] = retriever
     prog_bar.progress(100)
 if txt:
