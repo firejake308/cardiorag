@@ -29,7 +29,7 @@ if "retriever" not in st.session_state:
         cache_folder="./models"
     )
     prog_bar.progress(50)
-    retriever = SQLiteVec(embedding=hf, table='langchain', db_file='./vector_sqlite.db').as_retriever(search_kwargs={"k": 5})
+    retriever = SQLiteVec(embedding=hf, connection=None, table='langchain', db_file='./vector_sqlite.db').as_retriever(search_kwargs={"k": 5})
     st.session_state["retriever"] = retriever
     prog_bar.progress(100)
 if txt:
