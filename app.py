@@ -32,7 +32,7 @@ if "retriever" not in st.session_state:
     )
     prog_bar.progress(50)
     # retriever = FAISS(embedding_function=hf, docstore=InMemoryDocstore()).as_retriever(search_kwargs={"k": 5})
-    retriever = FAISS.load_local('./faiss', embeddings=hf)
+    retriever = FAISS.load_local('./faiss', embeddings=hf, allow_dangerous_deserialization=True)
     st.session_state["retriever"] = retriever
     prog_bar.progress(100)
 if txt:
