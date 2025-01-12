@@ -96,7 +96,7 @@ if submit_pressed and user_input and st.session_state["password"]:
     retriever = st.session_state["retriever"]
     docs = retriever.invoke(user_input)
     DIVIDER = "-"*10
-    context = DIVIDER.join([f"Page {d.metadata['page_num']}: {d.page_content}" for d in docs])
+    context = DIVIDER.join([f"Page {d.metadata['page_num']+2}: {d.page_content}" for d in docs])
 
     prompt = PromptTemplate(
         input_variables=["context", "question"],
